@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+supabase
+openai
+apscheduler
+requests
+pydantic
+python-dotenv
+pytrends
