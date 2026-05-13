@@ -26,7 +26,7 @@ if _ROOT not in sys.path:
 from supabase import create_client
 
 from agents.hn_agent import fetch_hn_posts
-from agents.reddit_agent import fetch_reddit_posts
+from agents.reddit_agent_json import fetch_reddit_posts as fetch_reddit_posts_json
 from agents.trends_agent import fetch_trends_posts
 from agents.scorer_agent import grade_posts
 
@@ -35,8 +35,7 @@ def _get_supabase():
     url = os.getenv("VITE_SUPABASE_URL")
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     if not url or not key:
-        print("[run_all] ERROR -- VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set")
-        sys.exit(1)
+        raise RuntimeError("VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in apps/api/.env")
     return create_client(url, key)
 
 
@@ -104,9 +103,9 @@ def run_all(job_id: str = None):
 
         def _fetch_reddit():
             try:
-                return fetch_reddit_posts()
+                return fetch_reddit_posts_json()
             except BaseException as e:
-                print(f"[run_all] WARNING -- Reddit fetch failed: {e}")
+                print(f"[run_all] WARNING -- Reddit JSON agent failed: {e} — continuing with HN only")
                 return []
 
         def _fetch_trends():
@@ -116,7 +115,7 @@ def run_all(job_id: str = None):
                 print(f"[run_all] WARNING -- Trends fetch failed: {e}")
                 return []
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as ex:
             hn_fut      = ex.submit(_fetch_hn)
             reddit_fut  = ex.submit(_fetch_reddit)
             trends_fut  = ex.submit(_fetch_trends)
@@ -163,11 +162,7 @@ def run_all(job_id: str = None):
               f"{len(new_posts)} genuinely new")
         db.table("crawl_jobs").update({"posts_filtered": skipped}).eq("id", crawl_job_id).execute()
 
-        # ── STEP 7 — score new posts ──────────────────────────────────────────
-        graded = grade_posts(new_posts)
-        print(f"[run_all] Scorer returned {len(graded)} valid graded ideas")
-
-        # ── STEP 8 — write each graded idea to Supabase ───────────────────────
+        # ── STEP 7 — load existing ideas for dedup (before scoring starts) ──────
         ideas_resp = (
             db.table("ideas")
               .select("id, title")
@@ -175,9 +170,10 @@ def run_all(job_id: str = None):
               .execute()
         )
         existing_ideas: list[dict] = ideas_resp.data or []
-        total = len(graded)
 
-        for i, idea in enumerate(graded, 1):
+        # ── STEP 8 — score + write each idea to DB immediately ──────────────────
+        def _save_idea(idea):
+            nonlocal ideas_new, ideas_updated
             now_write   = datetime.now(timezone.utc).isoformat()
             idea_id     = None
             is_new_idea = True
@@ -228,10 +224,17 @@ def run_all(job_id: str = None):
                 "upvotes":            idea.get("upvotes"),
                 "comment_count":      idea.get("comment_count"),
                 "posted_at":          idea.get("posted_at"),
+                "fetched_at":         now_write,
             }, on_conflict="post_url", ignore_duplicates=True).execute()
 
-            if i % 10 == 0:
-                print(f"[run_all] Saved {i}/{total} ideas...")
+            if (ideas_new + ideas_updated) % 5 == 0:
+                db.table("crawl_jobs").update({
+                    "ideas_new":     ideas_new,
+                    "ideas_updated": ideas_updated,
+                }).eq("id", crawl_job_id).execute()
+
+        graded = grade_posts(new_posts, on_idea=_save_idea)
+        print(f"[run_all] Scorer returned {len(graded)} graded ideas — {ideas_new} new, {ideas_updated} updated")
 
         # ── STEP 9 — mark crawl_job done ──────────────────────────────────────
         db.table("crawl_jobs").update({

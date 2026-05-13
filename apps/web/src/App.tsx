@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,8 +18,10 @@ import Discover from "./pages/Discover";
 import Saved from "./pages/Saved";
 import Trends from "./pages/Trends";
 import CrawlJobs from "./pages/CrawlJobs";
-import Landing from "./pages/Landing";
 import AuthCallback from "./pages/AuthCallback";
+import TermsAndConditions from "./pages/TermsAndConditions";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import RefundPolicy from "./pages/RefundPolicy";
 
 const queryClient = new QueryClient();
 
@@ -37,12 +39,15 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<Landing />} />
+            <Route path="/" element={<Navigate to="/discover" replace />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/terms" element={<TermsAndConditions />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/refund" element={<RefundPolicy />} />
             <Route path="/discover"   element={<ProtectedDashboard><Discover /></ProtectedDashboard>} />
             <Route path="/saved"      element={<ProtectedDashboard><Saved /></ProtectedDashboard>} />
             <Route path="/trends"     element={<ProtectedDashboard><Trends /></ProtectedDashboard>} />

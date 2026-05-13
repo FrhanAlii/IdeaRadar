@@ -13,6 +13,13 @@ import time
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
+# Make print() safe on Windows cp1252 terminals
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../apps/api/.env"), override=True)
 os.environ.pop("OPENAI_BASE_URL", None)  # clear any system-level Ollama override
 
@@ -125,11 +132,10 @@ def _call_openai(client, post: dict) -> dict | None:
 
 # ─── CORE PIPELINE ───────────────────────────────────────────────────────────
 
-def grade_posts(posts: list) -> list:
+def grade_posts(posts: list, on_idea=None) -> list:
     """Grade a list of normalized posts. Returns list of graded idea dicts sorted by final_score desc."""
     if not OPENAI_API_KEY:
-        print("[scorer] ERROR -- OPENAI_API_KEY is not set in apps/api/.env")
-        sys.exit(1)
+        raise RuntimeError("OPENAI_API_KEY is not set — check apps/api/.env")
 
     from openai import OpenAI
     client = OpenAI(api_key=OPENAI_API_KEY)
@@ -140,7 +146,7 @@ def grade_posts(posts: list) -> list:
         p for p in posts
         if compute_demand_score(p) >= 15
         and p.get("post_title")
-        and len(p.get("post_body") or "") >= 50
+        and len((p.get("post_title") or "") + (p.get("post_body") or "")) >= 30
         and (p.get("author_username") or p.get("source_type") == "google_trends")
     ]
     dropped_prefilter = before - len(filtered)
@@ -168,7 +174,7 @@ def grade_posts(posts: list) -> list:
                 ai["score_buildability"]    * 0.10 +
                 ai["score_competition"]     * 0.05
             )
-            results.append({
+            idea_dict = {
                 "title":              ai["title"],
                 "summary":            ai["summary"],
                 "grade":              _grade_from_score(final_score),
@@ -189,7 +195,10 @@ def grade_posts(posts: list) -> list:
                 "comment_count":      post.get("comment_count"),
                 "posted_at":          post.get("posted_at"),
                 "fetched_at":         post.get("fetched_at"),
-            })
+            }
+            results.append(idea_dict)
+            if on_idea:
+                on_idea(idea_dict)
 
         if i % 10 == 0:
             print(f"[scorer] Graded {i}/{total} -- {len(results)} valid so far")

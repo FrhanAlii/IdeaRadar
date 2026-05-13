@@ -5,6 +5,7 @@ import { Compass, RefreshCw, Settings, Lock } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useIdeas, useViewedIdeas, useUserSubscription, useUserCrawlsToday } from "@/hooks/useSupabaseData";
 import { IdeaCard } from "@/components/ideas/IdeaCard";
+import { useReadIdeas } from "@/hooks/useReadIdeas";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -31,9 +32,9 @@ const LimitReachedModal = ({ open, onClose, tier, nextResetAt }: LimitModalProps
     : 'midnight';
 
   const limits: Record<string, { current: number; next: string; nextLabel: string }> = {
-    free:     { current: 2,   next: 'pro',     nextLabel: 'Pro — 5 crawls/day for $9/mo' },
+    free:     { current: 2,   next: 'pro',      nextLabel: 'Pro — 5 crawls/day for $15/mo' },
     pro:      { current: 5,   next: 'pro_plus', nextLabel: 'Pro Plus — Unlimited for $29/mo' },
-    pro_plus: { current: 999, next: '',         nextLabel: '' },
+    pro_plus: { current: 999, next: '',          nextLabel: '' },
   };
 
   const info = limits[tier] || limits['free'];
@@ -179,9 +180,13 @@ export default function Discover() {
   const { data: subscription } = useUserSubscription(user?.id ?? "");
   const tier = (subscription?.tier ?? 'free') as string;
   const isAdmin = tier === 'admin';
+  const isFree = tier === 'free' && !isAdmin;
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
   const { data: allIdeas = [] } = useIdeas();
-  const { data: viewedIdeas = [] } = useViewedIdeas(user?.id ?? "");
+  const { data: viewedIdeas = [] } = useViewedIdeas(user?.id ?? "", isFree ? startOfToday.toISOString() : undefined);
   const ideas = isAdmin ? allIdeas : viewedIdeas;
+  const { markRead, isRead } = useReadIdeas();
 
   const [gradeFilter, setGradeFilter] = useState<GradeFilter>("All");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("All");
@@ -273,6 +278,10 @@ export default function Discover() {
       console.error("[handleSave] No authenticated user");
       return;
     }
+    if (isFree) {
+      navigate("/settings");
+      return;
+    }
     const alreadySaved = saved.has(id);
     setSaved((prev) => {
       const next = new Set(prev);
@@ -353,7 +362,7 @@ export default function Discover() {
         </div>
       </div>
 
-      {ideas.length > 0 && (
+      {!isFree && ideas.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 mb-6">
           <div className="flex gap-1 bg-secondary rounded-xl p-1">
             {GRADE_FILTERS.map((f) => (
@@ -395,7 +404,52 @@ export default function Discover() {
         </div>
       )}
 
-      {ideas.length === 0 ? (
+      {isFree && ideas.length === 0 ? (
+        <div className="bg-card border border-border rounded-2xl p-6 text-center shadow-card">
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+            <Lock className="w-5 h-5 text-primary" />
+          </div>
+          <h3 className="text-base font-semibold text-foreground mb-1">Run your first crawl to see ideas</h3>
+          <p className="text-sm text-muted">
+            Your free plan gives you 6 ideas per crawl, 2 crawls per day. Hit "Discover Ideas" above to get started.
+          </p>
+        </div>
+      ) : isFree && ideas.length > 0 ? (
+        <>
+          {/* Soft upgrade nudge */}
+          <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-4 shadow-card mb-6">
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-foreground">
+                Free plan — {ideas.length} idea{ideas.length !== 1 ? "s" : ""} this crawl
+              </p>
+              <p className="text-xs text-muted mt-0.5">
+                Grade A ideas are hidden on the free plan. Upgrade to Pro for ~25 ideas / crawl, all grades, and advanced filters.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate("/settings")}
+              className="gradient-primary text-primary-foreground rounded-xl px-4 py-2 text-xs font-semibold hover:opacity-90 transition-opacity whitespace-nowrap flex-shrink-0"
+            >
+              Upgrade to Pro →
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {ideas.map((idea: any) => (
+              <IdeaCard
+                key={idea.id}
+                {...idea}
+                isSaved={saved.has(idea.id)}
+                onSave={handleSave}
+                isUnread={!isRead(idea.id)}
+                onRead={() => markRead(idea.id)}
+              />
+            ))}
+            {Array.from({ length: 18 }, (_, i) => (
+              <LockedIdeaCard key={`extra-locked-${i}`} />
+            ))}
+          </div>
+        </>
+      ) : ideas.length === 0 ? (
         <div className="bg-card rounded-2xl p-10 text-center shadow-card">
           <Compass className="w-12 h-12 text-muted mx-auto mb-4" />
           <h3 className="text-base font-semibold text-foreground mb-2">No ideas yet</h3>
@@ -411,7 +465,7 @@ export default function Discover() {
             </>
           ) : (
             <>
-              <p className="text-sm text-muted mb-5">Click Run Crawl to discover your first batch of startup ideas</p>
+              <p className="text-sm text-muted mb-5">Click Discover Ideas to find your first batch of startup ideas</p>
               <button
                 onClick={() => navigate("/dashboard")}
                 className="gradient-primary text-primary-foreground rounded-xl px-5 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
@@ -430,27 +484,14 @@ export default function Discover() {
                 {...idea}
                 isSaved={saved.has(idea.id)}
                 onSave={handleSave}
+                isUnread={!isRead(idea.id)}
+                onRead={() => markRead(idea.id)}
               />
             ))}
             {filtered.length === 0 && (
               <div className="col-span-full bg-card rounded-2xl p-10 text-center shadow-card">
                 <p className="text-sm text-muted">No ideas match the selected filters.</p>
               </div>
-            )}
-            {!isAdmin && tier === 'free' && ideas.length > 0 && (
-              <>
-                <div className="col-span-full flex items-center gap-4 my-2">
-                  <div className="flex-1 h-px bg-border" />
-                  <span className="text-xs text-muted-foreground whitespace-nowrap flex items-center gap-1">
-                    <Lock className="w-3 h-3" />
-                    18 more ideas locked — upgrade to unlock
-                  </span>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
-                {Array.from({ length: 18 }, (_, i) => (
-                  <LockedIdeaCard key={`locked-${i}`} />
-                ))}
-              </>
             )}
           </div>
           {!isAdmin && (

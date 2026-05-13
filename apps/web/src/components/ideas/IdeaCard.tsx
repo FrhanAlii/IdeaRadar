@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Bookmark, ArrowUp, ChevronDown, ChevronUp, Copy, ExternalLink, X, FileText } from "lucide-react";
+import { Bookmark, ArrowUp, ChevronDown, ChevronUp, Copy, ExternalLink, X, FileText, Eye } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface IdeaSource {
@@ -37,6 +37,8 @@ interface IdeaCardProps {
   idea_sources?: IdeaSource[];
   isSaved?: boolean;
   onSave?: (id: string) => void;
+  isUnread?: boolean;
+  onRead?: () => void;
 }
 
 const gradeBadge: Record<string, string> = {
@@ -68,10 +70,13 @@ export function IdeaCard({
   total_upvotes, source_count, unique_users, first_seen_at,
   idea_sources = [],
   isSaved, onSave,
+  isUnread, onRead,
 }: IdeaCardProps) {
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  const isNew = (Date.now() - new Date(first_seen_at).getTime()) < 24 * 60 * 60 * 1000;
 
   const scores: Record<string, number> = {
     score_demand, score_mobile_fit, score_monetization, score_buildability, score_competition,
@@ -200,6 +205,18 @@ export function IdeaCard({
         <span className={`rounded-lg px-2.5 py-1 text-sm font-bold flex-shrink-0 ${gradeBadge[grade] ?? gradeBadge.D}`}>
           {grade}
         </span>
+        {isNew && (
+          <span className="bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none flex-shrink-0 self-center">
+            NEW
+          </span>
+        )}
+        {isUnread && (
+          <span className="relative flex-shrink-0 mt-0.5" title="Unread">
+            <Eye className="w-4 h-4 text-slate-400" />
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-orange-400 rounded-full animate-ping opacity-75" />
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-orange-400 rounded-full" />
+          </span>
+        )}
         <p className="font-semibold text-foreground flex-1 leading-snug">{title}</p>
         <button
           onClick={() => onSave?.(id)}
@@ -254,7 +271,7 @@ export function IdeaCard({
           discovered {formatDistanceToNow(new Date(first_seen_at), { addSuffix: true })}
         </span>
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={() => { setModalOpen(true); onRead?.(); }}
           className="text-xs text-primary hover:underline flex items-center gap-1"
         >
           <FileText className="w-3 h-3" /> View More

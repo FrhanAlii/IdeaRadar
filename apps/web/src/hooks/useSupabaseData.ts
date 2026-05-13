@@ -130,15 +130,17 @@ export const useUserSubscription = (userId: string) =>
     enabled: !!userId,
   });
 
-export const useViewedIdeas = (userId: string) =>
+export const useViewedIdeas = (userId: string, since?: string) =>
   useQuery({
-    queryKey: ['viewed_ideas', userId],
+    queryKey: ['viewed_ideas', userId, since ?? 'all'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('viewed_ideas')
         .select('idea_id, viewed_at, ideas(*, idea_sources(*))')
         .eq('user_id', userId)
         .order('viewed_at', { ascending: false });
+      if (since) query = query.gte('viewed_at', since);
+      const { data, error } = await query;
       if (error) throw error;
       return (data ?? []).map((row: any) => row.ideas).filter(Boolean);
     },

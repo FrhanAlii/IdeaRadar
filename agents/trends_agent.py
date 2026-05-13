@@ -108,7 +108,7 @@ Rules:
 - false if it's a one-time question answered by a blog post
 - false if it's a news/entertainment/celebrity query
 - false if it requires physical hardware to solve (not pure software)
-- false if confidence is below 60\
+- false if confidence is below 40\
 """
 
 REQUIRED_KEYS = {"is_app_or_saas_problem", "problem_statement", "product_category", "confidence"}
@@ -157,7 +157,7 @@ def _passes_keyword_filter(q: str) -> bool:
 
 
 def _call_openai_filter(client, query: str) -> dict | None:
-    delays = [4, None]
+    delays = [2, 4, 8, None]
     for attempt, delay in enumerate(delays):
         try:
             resp = client.chat.completions.create(
@@ -256,7 +256,7 @@ def fetch_trends_posts() -> list[dict]:
         if data is None:
             dropped_ai += 1
             continue
-        if not data.get("is_app_or_saas_problem") or (data.get("confidence") or 0) < 60:
+        if not data.get("is_app_or_saas_problem") or (data.get("confidence") or 0) < 40:
             dropped_ai += 1
             continue
         problem_stmt = data.get("problem_statement") or ""

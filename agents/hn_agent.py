@@ -3,10 +3,19 @@ HN agent — queries Algolia HN API for demand-signal posts, saves to /tmp/hn_po
 Run standalone: python agents/hn_agent.py
 """
 import os
+import sys
 import json
+import time
 import requests
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
+
+# Make print() safe on Windows cp1252 terminals
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../apps/api/.env"))
 
@@ -62,7 +71,7 @@ def fetch_hn_posts() -> list[dict]:
     for phrase in SEARCH_PHRASES:
         url = "https://hn.algolia.com/api/v1/search"
         params = {"query": phrase, "tags": "ask_hn", "hitsPerPage": 70,
-                  "numericFilters": f"points>=10,created_at>={six_months_ago_ts}"}
+                  "numericFilters": f"points>=5,created_at>={six_months_ago_ts}"}
         try:
             response = requests.get(url, params=params, timeout=15)
             response.raise_for_status()
@@ -97,6 +106,7 @@ def fetch_hn_posts() -> list[dict]:
             })
             added += 1
         print(f"[hn_agent] {phrase!r:<42} -> {len(hits):>3} hits | +{added} new | {dupes} dupes skipped")
+        time.sleep(0.3)
 
     cutoff_iso = six_months_ago_dt.isoformat()
     before_date_filter = len(posts)
@@ -112,7 +122,6 @@ def fetch_hn_posts() -> list[dict]:
     posts = [
         p for p in posts
         if p["post_title"]
-        and len(p["post_body"]) >= 30
         and p["author_username"]
     ]
     filtered_out = before_filter - len(posts)
