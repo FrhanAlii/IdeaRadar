@@ -1,13 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
-declare global {
-  interface Window {
-    IDEARADAR_CONFIG?: { appUrl: string };
-  }
-}
-
-const APP_URL = window.IDEARADAR_CONFIG?.appUrl ?? "";
+const APP_URL = import.meta.env.VITE_APP_URL ?? "";
 
 const RadarLogo = ({ size = 18 }: { size?: number }) => (
   <svg
