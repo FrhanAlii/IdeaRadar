@@ -20,13 +20,8 @@ app = FastAPI(title="IdeaRadar API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8080",
-        "http://localhost:8081",
-        "http://localhost:5173",
-        os.getenv("FRONTEND_URL", "http://localhost:8080"),
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
