@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 async def run_daily_crawl():
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), ".")))
     logger.info("Scheduled daily crawl starting...")
     try:
         from agents.run_all import run_all

@@ -8,7 +8,7 @@ import sys
 import random
 from datetime import datetime, timezone, timedelta
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 from db.supabase import get_client
 from utils import get_user_tier

@@ -17,7 +17,7 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../apps/api/.env"))
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../.env"))
 
 SEARCH_PHRASES = [
     # Direct demand signals

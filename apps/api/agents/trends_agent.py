@@ -24,7 +24,7 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../apps/api/.env"), override=True)
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../.env"), override=True)
 os.environ.pop("OPENAI_BASE_URL", None)
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")

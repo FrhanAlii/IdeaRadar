@@ -13,7 +13,7 @@ from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 
 load_dotenv(
-    dotenv_path=os.path.join(os.path.dirname(__file__), "../apps/api/.env"),
+    dotenv_path=os.path.join(os.path.dirname(__file__), "../.env"),
     override=True,
 )
 os.environ.pop("OPENAI_BASE_URL", None)
