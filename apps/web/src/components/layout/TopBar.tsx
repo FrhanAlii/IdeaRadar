@@ -1,4 +1,4 @@
-import { Search, X, Bell, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Search, X, Bell, CheckCircle, XCircle, Loader2, Menu } from "lucide-react";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,7 +37,7 @@ function friendlyError(raw: string | null): string {
   return "The crawl encountered an unexpected error. Please try again.";
 }
 
-export function TopBar() {
+export function TopBar({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -213,9 +213,19 @@ export function TopBar() {
     : (user?.email?.[0] || "U").toUpperCase();
 
   return (
-    <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6">
-      {/* Search */}
-      <div className="relative">
+    <header className="h-16 border-b border-border bg-card flex items-center justify-between px-4 lg:px-6">
+      {/* Left: hamburger (mobile) + search (sm+) */}
+      <div className="flex items-center gap-2">
+        {/* Mobile hamburger */}
+        <button
+          className="lg:hidden p-2 rounded-xl hover:bg-secondary transition-colors"
+          onClick={onMobileMenuToggle}
+        >
+          <Menu className="w-5 h-5 text-muted" />
+        </button>
+
+        {/* Search — hidden on mobile, visible on sm+ */}
+        <div className="relative hidden sm:flex">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
         <input
           type="text"
@@ -229,6 +239,7 @@ export function TopBar() {
             <X className="w-3.5 h-3.5" />
           </button>
         )}
+        </div>
       </div>
 
       {/* Right */}
@@ -248,7 +259,7 @@ export function TopBar() {
           </button>
 
           {showNotif && (
-            <div className="absolute right-0 top-12 w-80 bg-card border border-border rounded-2xl shadow-lg z-50 overflow-hidden">
+            <div className="absolute right-0 top-12 w-[calc(100vw-1rem)] sm:w-80 bg-card border border-border rounded-2xl shadow-lg z-50 overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <span className="text-sm font-semibold text-foreground">Crawl Notifications</span>
                 <button onClick={() => setShowNotif(false)} className="text-muted hover:text-foreground">

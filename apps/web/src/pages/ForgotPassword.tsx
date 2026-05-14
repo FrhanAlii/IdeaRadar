@@ -39,10 +39,17 @@ const ForgotPassword = () => {
         <AuthCard>
           <div className="space-y-5">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <div className="w-9 h-9 rounded-full border border-white/20 flex items-center justify-center">
-                <span className="text-sm font-bold bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">W</span>
+              <div className="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="4" />
+                  <line x1="12" y1="2" x2="12" y2="8" />
+                  <line x1="12" y1="16" x2="12" y2="22" />
+                  <line x1="2" y1="12" x2="8" y2="12" />
+                  <line x1="16" y1="12" x2="22" y2="12" />
+                </svg>
               </div>
-              <span className="text-white/80 font-semibold text-sm tracking-wide">Worknest</span>
+              <span className="text-white/80 font-semibold text-sm tracking-wide">IdeaRadar</span>
             </div>
 
             {sent ? (

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Compass, RefreshCw, Settings, Lock } from "lucide-react";
+import { Compass, RefreshCw, Settings, Lock, Bookmark } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useIdeas, useViewedIdeas, useUserSubscription, useUserCrawlsToday } from "@/hooks/useSupabaseData";
+import { useIdeas, useViewedIdeas, useUserSubscription, useUserCrawlsToday, useSavedIdeas } from "@/hooks/useSupabaseData";
 import { IdeaCard } from "@/components/ideas/IdeaCard";
 import { useReadIdeas } from "@/hooks/useReadIdeas";
 import { useAuth } from "@/contexts/AuthContext";
@@ -83,6 +83,57 @@ const LimitReachedModal = ({ open, onClose, tier, nextResetAt }: LimitModalProps
   );
 };
 
+const BookmarkLimitModal = ({
+  open,
+  onClose,
+  onGoToSaved,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onGoToSaved: () => void;
+}) => {
+  if (!open) return null;
+  return createPortal(
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-card rounded-2xl max-w-md w-full p-6 shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-center mb-4">
+          <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+            <Bookmark className="w-6 h-6 text-amber-600" />
+          </div>
+        </div>
+        <h2 className="text-lg font-semibold text-center text-foreground mb-2">
+          Bookmark limit reached
+        </h2>
+        <p className="text-sm text-muted-foreground text-center mb-6">
+          You've saved 5 ideas — the free plan limit.<br />
+          Unsave an idea to make room for this one.
+        </p>
+        <div className="flex flex-col gap-3">
+          <button
+            className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition"
+            onClick={onGoToSaved}
+          >
+            Go to Saved Ideas →
+          </button>
+          <button
+            className="w-full py-2.5 rounded-xl border border-border text-sm text-muted-foreground hover:bg-secondary transition"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
 const LOCKED_IDEA_TEMPLATE = {
   id: "__locked__",
   title: "AI-Powered Productivity Tool for Remote Teams",
@@ -143,7 +194,7 @@ const LockedIdeaCard = () => (
   </div>
 );
 
-const GRADE_FILTERS = ["All", "A", "B", "C"] as const;
+const GRADE_FILTERS = ["All", "A", "B", "C", "D"] as const;
 const SOURCE_FILTERS = ["All", "Reddit", "HN", "Trends"] as const;
 const DATE_FILTERS = ["All Time", "Today", "This Week", "This Month"] as const;
 
@@ -187,6 +238,7 @@ export default function Discover() {
   const { data: viewedIdeas = [] } = useViewedIdeas(user?.id ?? "", isFree ? startOfToday.toISOString() : undefined);
   const ideas = isAdmin ? allIdeas : viewedIdeas;
   const { markRead, isRead } = useReadIdeas();
+  const { data: savedIdeas = [] } = useSavedIdeas(user?.id ?? "");
 
   const [gradeFilter, setGradeFilter] = useState<GradeFilter>("All");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("All");
@@ -200,6 +252,7 @@ export default function Discover() {
   const [crawlSuccess, setCrawlSuccess] = useState<string | null>(null);
   const [crawlStep, setCrawlStep] = useState<string | null>(null);
   const [limitModalOpen, setLimitModalOpen] = useState(false);
+  const [bookmarkLimitOpen, setBookmarkLimitOpen] = useState(false);
 
   const handleRunCrawl = async () => {
     if (!isAdmin) {
@@ -278,17 +331,21 @@ export default function Discover() {
       console.error("[handleSave] No authenticated user");
       return;
     }
-    if (isFree) {
-      navigate("/settings");
+
+    const alreadySaved = saved.has(id) || savedIdeas.some((s: any) => s.idea_id === id);
+
+    if (isFree && !alreadySaved && savedIdeas.length >= 5) {
+      setBookmarkLimitOpen(true);
       return;
     }
-    const alreadySaved = saved.has(id);
+
     setSaved((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+
     if (alreadySaved) {
       const { error } = await supabase
         .from("saved_ideas")
@@ -302,6 +359,8 @@ export default function Discover() {
         .insert({ user_id: user.id, idea_id: id, saved_at: new Date().toISOString() });
       if (error) console.error("[handleSave] insert error:", error);
     }
+
+    queryClient.invalidateQueries({ queryKey: ["saved_ideas", user.id] });
   };
 
   const q = searchQuery.toLowerCase();
@@ -438,7 +497,7 @@ export default function Discover() {
               <IdeaCard
                 key={idea.id}
                 {...idea}
-                isSaved={saved.has(idea.id)}
+                isSaved={saved.has(idea.id) || savedIdeas.some((s: any) => s.idea_id === idea.id)}
                 onSave={handleSave}
                 isUnread={!isRead(idea.id)}
                 onRead={() => markRead(idea.id)}
@@ -482,7 +541,7 @@ export default function Discover() {
               <IdeaCard
                 key={idea.id}
                 {...idea}
-                isSaved={saved.has(idea.id)}
+                isSaved={saved.has(idea.id) || savedIdeas.some((s: any) => s.idea_id === idea.id)}
                 onSave={handleSave}
                 isUnread={!isRead(idea.id)}
                 onRead={() => markRead(idea.id)}
@@ -516,6 +575,11 @@ export default function Discover() {
       onClose={() => setLimitModalOpen(false)}
       tier={subscription?.tier ?? 'free'}
       nextResetAt={crawlsToday?.nextResetAt ?? null}
+    />
+    <BookmarkLimitModal
+      open={bookmarkLimitOpen}
+      onClose={() => setBookmarkLimitOpen(false)}
+      onGoToSaved={() => { setBookmarkLimitOpen(false); navigate("/saved"); }}
     />
     </>
   );

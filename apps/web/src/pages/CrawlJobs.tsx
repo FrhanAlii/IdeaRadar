@@ -230,6 +230,7 @@ export default function CrawlJobs() {
         </div>
       ) : (
         <div className="bg-card rounded-2xl shadow-card overflow-hidden">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -283,6 +284,7 @@ export default function CrawlJobs() {
               }
             </TableBody>
           </Table>
+          </div>
         </div>
       )}
 
