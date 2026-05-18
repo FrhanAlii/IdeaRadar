@@ -145,12 +145,12 @@ def run_all(job_id: str = None):
         print(f"[run_all] Merged: {len(merged)} unique posts after dedup")
         db.table("crawl_jobs").update({"posts_scanned": len(merged)}).eq("id", crawl_job_id).execute()
 
-        # ── STEP 6 — filter already-known post_urls (last 90 days) ───────────
-        cutoff_90 = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
+        # ── STEP 6 — filter already-known post_urls (last 1 day) ────────────
+        cutoff_1d = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
         existing_resp = (
             db.table("idea_sources")
               .select("post_url")
-              .gte("fetched_at", cutoff_90)
+              .gte("fetched_at", cutoff_1d)
               .execute()
         )
         existing_urls = {r["post_url"] for r in (existing_resp.data or [])}

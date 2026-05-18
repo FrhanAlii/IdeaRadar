@@ -5,7 +5,6 @@ import asyncio
 import logging
 import os
 import sys
-import random
 from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
@@ -173,8 +172,6 @@ async def trigger_crawl(request: Request, background_tasks: BackgroundTasks):
             {"user_id": user_id, "idea_id": idea["id"], "viewed_at": now}
             for idea in ideas
         ]).execute()
-
-    await asyncio.sleep(random.uniform(180, 300))
 
     return {
         "simulated": True,

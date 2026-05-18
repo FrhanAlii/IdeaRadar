@@ -260,7 +260,7 @@ export default function CrawlJobs() {
                       </TableCell>
                       <TableCell className="text-sm text-muted">{job.sources ?? "—"}</TableCell>
                       <TableCell className="text-sm text-muted">{job.posts_scanned ?? "—"}</TableCell>
-                      <TableCell className="text-sm text-muted">{job.ideas_found ?? "—"}</TableCell>
+                      <TableCell className="text-sm text-muted">{job.ideas_new ?? "—"}</TableCell>
                       <TableCell>
                         <span className={`text-xs font-semibold rounded-full px-2.5 py-1 ${statusBadge[job.status] ?? "bg-secondary text-muted"}`}>
                           {job.status}
