@@ -84,7 +84,7 @@ export function AppSidebar({
       <aside
         className={`fixed left-0 top-0 h-screen bg-card border-r border-border flex flex-col z-40 transition-all duration-200
           ${mobileOpen ? "flex" : "hidden"} lg:flex
-          ${effectiveCollapsed ? "w-[68px]" : "w-[220px]"}`}
+          ${mobileOpen ? "w-4/5 max-w-[300px]" : effectiveCollapsed ? "w-[68px]" : "w-[220px]"}`}
       >
         <div className="flex items-center gap-3 px-5 py-5">
           <div className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
