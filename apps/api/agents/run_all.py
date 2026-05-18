@@ -115,7 +115,7 @@ def run_all(job_id: str = None):
                 print(f"[run_all] WARNING -- Trends fetch failed: {e}")
                 return []
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as ex:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
             hn_fut      = ex.submit(_fetch_hn)
             reddit_fut  = ex.submit(_fetch_reddit)
             trends_fut  = ex.submit(_fetch_trends)
@@ -163,6 +163,7 @@ def run_all(job_id: str = None):
         db.table("crawl_jobs").update({"posts_filtered": skipped}).eq("id", crawl_job_id).execute()
 
         # ── STEP 7 — load existing ideas for dedup (before scoring starts) ──────
+        cutoff_90 = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
         ideas_resp = (
             db.table("ideas")
               .select("id, title")
