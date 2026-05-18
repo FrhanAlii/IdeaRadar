@@ -259,7 +259,7 @@ export function TopBar({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void
           </button>
 
           {showNotif && (
-            <div className="absolute right-0 top-12 w-[calc(100vw-1rem)] sm:w-80 bg-card border border-border rounded-2xl shadow-lg z-50 overflow-hidden">
+            <div className="fixed sm:absolute right-4 sm:right-0 top-[64px] sm:top-12 w-[calc(100vw-2rem)] sm:w-80 bg-card border border-border rounded-2xl shadow-lg z-50 overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <span className="text-sm font-semibold text-foreground">Crawl Notifications</span>
                 <button onClick={() => setShowNotif(false)} className="text-muted hover:text-foreground">
