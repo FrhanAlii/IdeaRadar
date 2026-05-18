@@ -69,6 +69,8 @@ export function AppSidebar({
     if (onMobileClose) onMobileClose();
   };
 
+  const effectiveCollapsed = mobileOpen ? false : collapsed;
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -82,7 +84,7 @@ export function AppSidebar({
       <aside
         className={`fixed left-0 top-0 h-screen bg-card border-r border-border flex flex-col z-40 transition-all duration-200
           ${mobileOpen ? "flex" : "hidden"} lg:flex
-          ${collapsed ? "w-[68px]" : "w-[220px]"}`}
+          ${effectiveCollapsed ? "w-[68px]" : "w-[220px]"}`}
       >
         <div className="flex items-center gap-3 px-5 py-5">
           <div className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
@@ -95,10 +97,10 @@ export function AppSidebar({
               <line x1="16" y1="12" x2="22" y2="12" />
             </svg>
           </div>
-          {!collapsed && <span className="text-lg font-bold text-primary">IdeaRadar</span>}
+          {!effectiveCollapsed && <span className="text-lg font-bold text-primary">IdeaRadar</span>}
         </div>
         <nav className="flex-1 px-3 overflow-y-auto">
-          {!collapsed && <p className="text-[11px] font-semibold text-muted uppercase tracking-[0.05em] px-3 mb-2">Menu</p>}
+          {!effectiveCollapsed && <p className="text-[11px] font-semibold text-muted uppercase tracking-[0.05em] px-3 mb-2">Menu</p>}
           <ul className="space-y-1">
             {menuItems.map((item) => (
               <li key={item.path}>
@@ -110,8 +112,8 @@ export function AppSidebar({
                       : "text-foreground/70 hover:bg-secondary hover:text-foreground"
                   }`}>
                   <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
-                  {item.hasBadge && 0 > 0 && !collapsed && (
+                  {!effectiveCollapsed && <span>{item.label}</span>}
+                  {item.hasBadge && 0 > 0 && !effectiveCollapsed && (
                     <span className="ml-auto bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">{0}</span>
                   )}
                 </Link>
@@ -119,7 +121,7 @@ export function AppSidebar({
             ))}
           </ul>
           <div className="mt-6">
-            {!collapsed && <p className="text-[11px] font-semibold text-muted uppercase tracking-[0.05em] px-3 mb-2">General</p>}
+            {!effectiveCollapsed && <p className="text-[11px] font-semibold text-muted uppercase tracking-[0.05em] px-3 mb-2">General</p>}
             <ul className="space-y-1">
               {generalItems.map((item) => (
                 <li key={item.path}>
@@ -129,7 +131,7 @@ export function AppSidebar({
                       isActive(item.path) ? "bg-primary/10 text-primary font-semibold" : "text-foreground/70 hover:bg-secondary hover:text-foreground"
                     }`}>
                     <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
-                    {!collapsed && <span>{item.label}</span>}
+                    {!effectiveCollapsed && <span>{item.label}</span>}
                   </Link>
                 </li>
               ))}
@@ -137,7 +139,7 @@ export function AppSidebar({
                 <button onClick={handleLogout}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-foreground/70 hover:bg-secondary hover:text-foreground transition-all duration-150">
                   <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
-                  {!collapsed && <span>Logout</span>}
+                  {!effectiveCollapsed && <span>Logout</span>}
                 </button>
               </li>
             </ul>
@@ -145,7 +147,7 @@ export function AppSidebar({
         </nav>
 
         <div className="border-t border-border px-3 py-3 flex-shrink-0">
-          <div className={`flex flex-row items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-secondary transition-colors ${collapsed ? "justify-center" : ""}`}>
+          <div className={`flex flex-row items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-secondary transition-colors ${effectiveCollapsed ? "justify-center" : ""}`}>
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="avatar" className="w-8 h-8 rounded-full flex-shrink-0 object-cover self-center" />
             ) : (
@@ -153,7 +155,7 @@ export function AppSidebar({
                 <span className="text-white text-xs font-medium">{initials}</span>
               </div>
             )}
-            {!collapsed && (
+            {!effectiveCollapsed && (
               <>
                 <div className="flex flex-col justify-center flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate leading-none">{displayName}</p>

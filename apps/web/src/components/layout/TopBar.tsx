@@ -345,11 +345,11 @@ export function TopBar({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void
               {initials}
             </div>
           )}
-          <div className="hidden md:block">
-            <p className="text-sm font-semibold text-foreground leading-tight">
+          <div className="max-w-[120px] sm:max-w-none">
+            <p className="text-sm font-semibold text-foreground leading-tight truncate">
               {displayName || user?.email?.split("@")[0]}
             </p>
-            <p className="text-[11px] text-muted">{user?.email}</p>
+            <p className="hidden md:block text-[11px] text-muted">{user?.email}</p>
           </div>
         </div>
       </div>
