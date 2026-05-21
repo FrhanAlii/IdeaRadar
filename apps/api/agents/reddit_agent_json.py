@@ -26,7 +26,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../.env"))
 USER_AGENT    = "IdeaRadar/1.0 (personal project, low volume)"
 BASE_URL      = "https://www.reddit.com/r/{subreddit}/{sort}.json"
 POSTS_PER_PAGE = 100
-SORT_TYPES    = ["hot", "new"]
+SORT_TYPES    = ["hot", "top"]
 
 
 # ─── Paginated fetcher for a single subreddit + sort ─────────────────────────
