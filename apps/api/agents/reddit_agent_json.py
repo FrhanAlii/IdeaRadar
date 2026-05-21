@@ -1,6 +1,9 @@
 """
-Reddit agent (JSON API) — fetches posts via Reddit's free public JSON endpoint.
-No API key, no Apify, no auth required.
+Reddit agent — fetches posts via Reddit OAuth API (client_credentials flow).
+Requires REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET env vars.
+
+Create a free script app at https://www.reddit.com/prefs/apps (type: script,
+no approval needed) to get the credentials.
 
 Run standalone:  python agents/reddit_agent_json.py
 Import:          from agents.reddit_agent_json import fetch_reddit_posts
@@ -9,6 +12,7 @@ import os
 import json
 import time
 import requests
+import requests.auth
 from datetime import datetime, timezone
 from collections import Counter
 from dotenv import load_dotenv
@@ -23,23 +27,50 @@ if hasattr(sys.stdout, "reconfigure"):
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../.env"))
 
-USER_AGENT    = "IdeaRadar/1.0 (personal project, low volume)"
-BASE_URL      = "https://www.reddit.com/r/{subreddit}/{sort}.json"
+_CLIENT_ID     = os.getenv("REDDIT_CLIENT_ID", "")
+_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET", "")
+_USERNAME      = os.getenv("REDDIT_USERNAME", "idearadar")
+
+USER_AGENT     = f"python:idearadar:v1.0 (by /u/{_USERNAME})"
+BASE_URL       = "https://oauth.reddit.com/r/{subreddit}/{sort}"
 POSTS_PER_PAGE = 100
-SORT_TYPES    = ["hot", "top"]
+SORT_TYPES     = ["hot", "top"]
+
+
+def _get_oauth_token() -> str:
+    """Get a read-only OAuth token via the client_credentials flow."""
+    if not _CLIENT_ID or not _CLIENT_SECRET:
+        raise RuntimeError(
+            "REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET must be set. "
+            "Create a free script app at https://www.reddit.com/prefs/apps"
+        )
+    resp = requests.post(
+        "https://www.reddit.com/api/v1/access_token",
+        auth=requests.auth.HTTPBasicAuth(_CLIENT_ID, _CLIENT_SECRET),
+        data={"grant_type": "client_credentials"},
+        headers={"User-Agent": USER_AGENT},
+        timeout=15,
+    )
+    resp.raise_for_status()
+    return resp.json()["access_token"]
 
 
 # ─── Paginated fetcher for a single subreddit + sort ─────────────────────────
 
-def fetch_subreddit_paginated(subreddit: str, sort: str = "hot", max_posts: int = 200) -> list:
+def fetch_subreddit_paginated(
+    subreddit: str, sort: str = "hot", max_posts: int = 200, token: str = ""
+) -> list:
     """
-    Fetches up to max_posts posts from a subreddit using Reddit's .json endpoint.
-    Each page returns up to 100 posts; pagination uses the 'after' cursor token.
+    Fetches up to max_posts posts from a subreddit via the Reddit OAuth API.
+    Pagination uses the 'after' cursor token.
     """
     all_posts = []
     after     = None
     page      = 1
-    headers   = {"User-Agent": USER_AGENT}
+    headers   = {
+        "User-Agent":    USER_AGENT,
+        "Authorization": f"bearer {token}",
+    }
 
     while len(all_posts) < max_posts:
         params = {"limit": POSTS_PER_PAGE, "t": "week"}
@@ -58,7 +89,7 @@ def fetch_subreddit_paginated(subreddit: str, sort: str = "hot", max_posts: int 
                 response = requests.get(url, params=params, headers=headers, timeout=15)
 
             if response.status_code == 403:
-                print(f"[reddit_json] r/{subreddit} is private or banned — skipping")
+                print(f"[reddit_json] r/{subreddit} access denied — skipping")
                 break
 
             if response.status_code == 404:
@@ -126,7 +157,14 @@ def normalize_post(raw: dict, subreddit: str) -> dict:
 # ─── CORE PIPELINE ───────────────────────────────────────────────────────────
 
 def fetch_reddit_posts() -> list:
-    """Fetch Reddit posts via Reddit's public JSON API. Returns normalized, filtered post list."""
+    """Fetch Reddit posts via Reddit OAuth API. Returns normalized, filtered post list."""
+
+    try:
+        token = _get_oauth_token()
+        print(f"[reddit_json] OAuth token acquired")
+    except Exception as e:
+        print(f"[reddit_json] WARNING — OAuth token fetch failed: {e} — aborting Reddit fetch")
+        return []
 
     subreddits = [
         s.strip()
@@ -146,7 +184,7 @@ def fetch_reddit_posts() -> list:
 
     for subreddit in subreddits:
         for sort in SORT_TYPES:
-            posts = fetch_subreddit_paginated(subreddit, sort, max_per_sub)
+            posts = fetch_subreddit_paginated(subreddit, sort, max_per_sub, token=token)
             all_raw.extend((p, subreddit) for p in posts)
             time.sleep(2)
 

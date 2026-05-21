@@ -70,7 +70,7 @@ def fetch_hn_posts() -> list[dict]:
 
     for phrase in SEARCH_PHRASES:
         url = "https://hn.algolia.com/api/v1/search"
-        params = {"query": phrase, "tags": "ask_hn", "hitsPerPage": 70,
+        params = {"query": phrase, "tags": "story", "hitsPerPage": 70,
                   "numericFilters": f"points>=5,created_at>={six_months_ago_ts}"}
         try:
             response = requests.get(url, params=params, timeout=15)
