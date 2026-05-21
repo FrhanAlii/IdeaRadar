@@ -168,10 +168,10 @@ async def trigger_crawl(request: Request, background_tasks: BackgroundTasks):
 
     if ideas:
         now = datetime.now(timezone.utc).isoformat()
-        db.table("viewed_ideas").insert([
-            {"user_id": user_id, "idea_id": idea["id"], "viewed_at": now}
-            for idea in ideas
-        ]).execute()
+        db.table("viewed_ideas").upsert(
+            [{"user_id": user_id, "idea_id": idea["id"], "viewed_at": now} for idea in ideas],
+            on_conflict="user_id,idea_id",
+        ).execute()
 
     return {
         "simulated": True,
